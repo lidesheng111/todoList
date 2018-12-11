@@ -3,20 +3,17 @@
     <input type="text" class="todo-input" placeholder="what needs to de done" v-model="newTodo" v-on:keyup.enter="onAdd">
     
     <transition-group name="fade" enter-active-class="animated fadeInUp" leave-active-class="animated fadeOutDown">
-        <div v-for="(todo, index) in todosFiltered" v-bind:key="todo.id" class="todo-item-container">
-            <div class="todo-item-left">
-                <input type="checkbox" v-model="todo.completed">
-                <div v-if="!todo.editing" class="todo-item-label" :class="{completed: todo.completed}" @dblclick="onEdit(todo)" >{{todo.title}}</div>
-                <input v-else class="todo-item-edit" type="text" v-model="todo.title" @blur="onFinished(todo)" @keyup.enter="onFinished(todo)" v-focus @keyup.esc="onCancel(todo)">
-            </div>
-            <div class="remove-item" v-on:click="onRemove(index)">&times;</div>
-        </div>
+
+        <todo-item v-for="(todo, index) in todosFiltered" v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="anyRemaining" @onRemove_="onRemove" @onFinished_="onFinished">
+
+        </todo-item>
     </transition-group>
 
     <div class="extra-container">
         <div>
             <label for="checkAll">Check All</label>
-            <input type="checkbox" id="checkAll" v-bind:checked="remainingStatus" @change="toggleCheckAll">
+            <!-- anyRemaining取决于remaining是否等于0，将anyRemaining赋值给checked，以控制checkbox; 同时通过toogle方法，用checked值 和 forEach，控制(取消)全选 和 remaining -->
+            <input type="checkbox" id="checkAll" v-bind:checked="anyRemaining" @change="toggleCheckAll">
         </div>
         <div>{{remaining}} items left</div>
     </div>
@@ -33,8 +30,14 @@
 </template>
 
 <script>
+import TodoItem from './TodoItem';
+
 export default {
     name: "todo-list",
+
+    components: {
+        TodoItem
+    },
 
     data() {
         return {
@@ -54,7 +57,7 @@ export default {
         remaining() {
             return this.todos.filter(todo => !todo.completed).length
         },
-        remainingStatus() {
+        anyRemaining() {
             return this.remaining == 0;
         },
         todosFiltered() {
@@ -77,15 +80,6 @@ export default {
         }
     },
 
-    directives: {
-        focus: {
-            // 指令的定义
-            inserted: function(el) {
-            el.focus();
-            }
-        }
-    },
-
     methods: {
         onAdd() {
             this.todoCount++;
@@ -100,31 +94,22 @@ export default {
             this.allCompleted = false;
             this.newTodo = "";
         },
+       
         onRemove(index) {
+            // 接收子组件emit过来的数据，更新todos
             this.todos.splice(index, 1);
         },
-        onEdit(todo) {
-            this.beforeEditingCache = todo.title; // 编辑开始前，先把内容缓存
-            todo.editing = true;
-        },
-        onFinished(todo) {
-            if (todo.title.trim() === "") {
-            todo.title = this.beforeEditingCache;
-            } // 不允许编辑后内容为空
-            todo.editing = false;
-        },
-        onCancel(todo) {
-            todo.title = this.beforeEditingCache; // 取消：调用缓存
-            todo.editing = false;
-        },
         toggleCheckAll() {
-            console.log(event)
             this.todos.forEach( (todo) => {
-                todo.completed = event.target.checked
+                todo.completed = event.target.checked;
             })
         },
         onClearCompleted() {
             this.todos = this.todos.filter( todo => !todo.completed );
+        },
+        onFinished(data) {
+            // 接收子组件emit过来的数据，更新todos
+            this.todos.splice(data.index, 1, data.todo)
         }
     }
 };
