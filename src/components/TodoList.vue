@@ -4,7 +4,7 @@
     
     <transition-group name="fade" enter-active-class="animated fadeInUp" leave-active-class="animated fadeOutDown">
 
-        <todo-item v-for="(todo, index) in todosFiltered" v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="anyRemaining" @onRemove_="onRemove" @onFinished_="onFinished">
+        <todo-item v-for="(todo, index) in todosFiltered" v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="anyRemaining">
 
         </todo-item>
     </transition-group>
@@ -78,6 +78,11 @@ export default {
         showClearCompletedButton() {
             return this.todos.filter( todo => todo.completed).length > 0;
         }
+    },
+
+    created() {
+        eventBus.$on('onRemove_', index => this.onRemove(index));
+        eventBus.$on('onFinished_', data => this.onFinished(data))
     },
 
     methods: {

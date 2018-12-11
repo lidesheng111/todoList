@@ -59,7 +59,7 @@ export default {
 
     methods: {
         onRemove_(index) {
-            this.$emit('onRemove_', index)
+            eventBus.$emit('onRemove_', index)
         },
         onEdit_() {
             this.beforeEditingCache = this.title; // 编辑开始前，先把内容缓存
@@ -72,7 +72,7 @@ export default {
             } 
             this.editing = false;
             // 将在子组件里编辑后的内容更新到父组件里
-            this.$emit('onFinished_', {
+            eventBus.$emit('onFinished_', {
                 index: this.index_,
                 todo: {
                     id: this.id,
