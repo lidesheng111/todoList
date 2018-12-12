@@ -5,7 +5,10 @@
             <div v-if="!editing" class="todo-item-label" :class="{completed: completed}" @dblclick="onEdit_" >{{title}}</div>
             <input v-else class="todo-item-edit" type="text" v-model="title" @blur="onFinished_" @keyup.enter="onFinished_" v-focus @keyup.esc="onCancel">
         </div>
-        <div class="remove-item" @click="onRemove_(index_)">&times;</div>
+        <div>
+            <button @click="onPluralize">Plural</button>
+            <span class="remove-item" @click="onRemove_(index_)">&times;</span>
+        </div>
     </div>
 </template>
 
@@ -49,12 +52,19 @@ export default {
         }
     },
 
+    created() {
+        eventBus.$on('onPluralize', this.handlePluralize);
+    },
+
     // 把父组件里的anyRemaining值（true/false）引入，以控制单个todo的completed。每次anyRemaining变换，TodoItem都会重新被渲染
     // watch属性直接侦听props里数据变动，从而触发后续动作；需保持变量名与方法名的对应；watch里的方法无需绑定在template里
     watch: {
         checkAll_() {
             this.completed = this.checkAll_ ? true : this.todo_.completed
         }
+    },
+    beforeDestroy() {
+        eventBus.$off('onPluralize', this.handlePluralize);
     },
 
     methods: {
@@ -86,6 +96,22 @@ export default {
             this.title = this.beforeEditingCache; // 取消：调用缓存
             this.editing = false;
         },
+        onPluralize() {
+            eventBus.$emit('onPluralize');
+        },
+        handlePluralize() {
+            console.log(1)
+            this.title = this.title + 's';
+            eventBus.$emit('onFinished_', {
+                index: this.index_,
+                todo: {
+                    id: this.id,
+                    title: this.title,
+                    completed: this.completed,
+                    editing: this.editing,
+                }
+            })
+        }
     }
 }
 </script>

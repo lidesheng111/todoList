@@ -3,40 +3,32 @@
     <input type="text" class="todo-input" placeholder="what needs to de done" v-model="newTodo" v-on:keyup.enter="onAdd">
     
     <transition-group name="fade" enter-active-class="animated fadeInUp" leave-active-class="animated fadeOutDown">
-
-        <todo-item v-for="(todo, index) in todosFiltered" v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="anyRemaining">
-
-        </todo-item>
+        <todo-item v-for="(todo, index) in todosFiltered"  v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="anyRemaining"></todo-item>
     </transition-group>
 
     <div class="extra-container">
-        <div>
-            <label for="checkAll">Check All</label>
-            <!-- anyRemaining取决于remaining是否等于0，将anyRemaining赋值给checked，以控制checkbox; 同时通过toogle方法，用checked值 和 forEach，控制(取消)全选 和 remaining -->
-            <input type="checkbox" id="checkAll" v-bind:checked="anyRemaining" @change="toggleCheckAll">
-        </div>
-        <div>{{remaining}} items left</div>
+        <todo-check-all :anyRemaining_="anyRemaining">anyRemaining</todo-check-all>
+        <todo-items-remaining :remaining_="remaining" :todos_="todos"></todo-items-remaining>
     </div>
 
-    <div class="button-container">
-        <button :class="{ active: filter == 'all' }" @click=" filter = 'all' ">All</button>
-        <button :class="{ active: filter == 'active' }" @click=" filter = 'active' ">Active</button>
-        <button :class="{ active: filter == 'completed' }" @click=" filter = 'completed' ">Completed</button>
-        <transition name="fade">
-            <button class="clear-btn" v-if="showClearCompletedButton" @click="onClearCompleted">Clear Completed</button>
-        </transition>    
-    </div>
+    <todo-filtered :showButton_="showClearCompletedButton"></todo-filtered>
 </div>
 </template>
 
 <script>
 import TodoItem from './TodoItem';
+import TodoItemsRemaining from './TodoItemsRemaining';
+import TodoCheckAll from './TodoCheckAll';
+import TodoFiltered from './TodoFiltered';
 
 export default {
     name: "todo-list",
 
     components: {
-        TodoItem
+        TodoItem,
+        TodoItemsRemaining,
+        TodoCheckAll,
+        TodoFiltered
     },
 
     data() {
@@ -50,45 +42,69 @@ export default {
                 { id: 3, title: "Learn Vue", completed: false, editing: false }
             ],
             filter: 'all',
+            todosFiltered: null
         };
     },
 
     computed: {
-        remaining() {
-            return this.todos.filter(todo => !todo.completed).length
-        },
+        // remaining() {
+        //     return this.todos.filter(todo => !todo.completed).length
+        // },
         anyRemaining() {
             return this.remaining == 0;
         },
-        todosFiltered() {
+        // todosFiltered() {
+        //     switch (this.filter) {
+        //         case 'all': return this.todos;
+        //             break;
+
+        //         case 'active':
+        //             return this.todos.filter(todo => !todo.completed);
+        //             break;
+
+        //         case 'completed': return this.todos.filter(todo => todo.completed);
+        //             break;
+
+        //         default: return this.todos;
+        //     }
+        // },
+        // showClearCompletedButton() {
+        //     return this.todos.filter( todo => todo.completed).length > 0;
+        // }
+    },
+
+    watch: {
+        filter(){
             switch (this.filter) {
-                case 'all': return this.todos;
+                case 'all': return this.todosFiltered = this.todos;
                     break;
 
                 case 'active':
-                    return this.todos.filter(todo => !todo.completed);
+                    return this.todosFiltered = this.todos.filter(todo => !todo.completed);
                     break;
 
-                case 'completed': return this.todos.filter(todo => todo.completed);
+                case 'completed': return this.todosFiltered = this.todos.filter(todo => todo.completed);
                     break;
 
-                default: return this.todos;
+                default: return this.todosFiltered = this.todos;
             }
-        },
-        showClearCompletedButton() {
-            return this.todos.filter( todo => todo.completed).length > 0;
         }
     },
 
     created() {
         eventBus.$on('onRemove_', index => this.onRemove(index));
-        eventBus.$on('onFinished_', data => this.onFinished(data))
+        eventBus.$on('onFinished_', data => this.onFinished(data));
+        eventBus.$on('toggleCheckAll', () => this.toggleCheckAll());
+        eventBus.$on('onClearCompleted_', () => this.onClearCompleted());
+        eventBus.$on('onFilter_', (value) => this.filter = value); //通过事件传递value --> 改变this.filter的值 --> 引起watch事件发生
     },
+
+    
 
     methods: {
         onAdd() {
-            this.todoCount++;
-            if (this.newTodo.trim().length === 0) return;
+            // this.todoCount++;
+            // if (this.newTodo.trim().length === 0) return;
 
             this.todos.push({
                 id: this.todoCount,
@@ -113,6 +129,8 @@ export default {
             this.todos = this.todos.filter( todo => !todo.completed );
         },
         onFinished(data) {
+            console.log(this.todosFiltered)
+            console.log(data, 'data')
             // 接收子组件emit过来的数据，更新todos
             this.todos.splice(data.index, 1, data.todo)
         }
@@ -124,14 +142,27 @@ export default {
 <style lang="scss">
 @import url("https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.5.2/animate.min.css");
 
+@mixin button {
+    button {
+        font-size: 14px;
+        background-color: white;
+        appearance: none;
+        &:hover {
+            background: lightgreen;
+        }
+        &:focus {
+            outline: none;
+        }
+    }
+}
+
     .todo-input {
         width: 100%;
         padding: 10px 18px;
         font-size: 18px;
         margin-bottom: 16px;
-
         &:focus {
-        outline: 0;
+            outline: 0;
         }
     }
 
@@ -141,6 +172,7 @@ export default {
         align-items: center;
         justify-content: space-between;
         animation-duration: 0.3s;
+        @include button;
 
         .todo-item-label {
             padding: 6px;
@@ -184,18 +216,7 @@ export default {
 
     .button-container {
         display: block;
-
-        button {
-            font-size: 14px;
-            background-color: white;
-            appearance: none;
-            &:hover {
-                background: lightgreen;
-            }
-            &:focus {
-                outline: none;
-            }
-        }
+        @include button;
 
         .active {
             background: lightgreen;
