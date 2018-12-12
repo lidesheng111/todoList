@@ -3,15 +3,15 @@
     <input type="text" class="todo-input" placeholder="what needs to de done" v-model="newTodo" v-on:keyup.enter="onAdd">
     
     <transition-group name="fade" enter-active-class="animated fadeInUp" leave-active-class="animated fadeOutDown">
-        <todo-item v-for="(todo, index) in todosFiltered"  v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="anyRemaining"></todo-item>
+        <todo-item v-for="(todo, index) in todosFiltered"  v-bind:key="todo.id" :todo_="todo" :index_="index" :checkAll_="noRemaining"></todo-item>
     </transition-group>
 
     <div class="extra-container">
-        <todo-check-all :anyRemaining_="anyRemaining">anyRemaining</todo-check-all>
-        <todo-items-remaining :remaining_="remaining" :todos_="todos"></todo-items-remaining>
+        <todo-check-all></todo-check-all>
+        <todo-items-remaining></todo-items-remaining>
     </div>
 
-    <todo-filtered :showButton_="showClearCompletedButton"></todo-filtered>
+    <todo-filtered></todo-filtered>
 </div>
 </template>
 
@@ -36,104 +36,37 @@ export default {
             newTodo: "",
             todoCount: 3,
             beforeEditingCache: "",
-            todos: [
-                { id: 1, title: "Finish Vue Screencast", completed: false, editing: false },
-                { id: 2, title: "Take over world", completed: false, editing: false },
-                { id: 3, title: "Learn Vue", completed: false, editing: false }
-            ],
-            filter: 'all',
-            todosFiltered: null
         };
     },
 
     computed: {
-        // remaining() {
-        //     return this.todos.filter(todo => !todo.completed).length
-        // },
-        anyRemaining() {
-            return this.remaining == 0;
+        remaining() {
+            return this.$store.getters.remaining;
         },
-        // todosFiltered() {
-        //     switch (this.filter) {
-        //         case 'all': return this.todos;
-        //             break;
-
-        //         case 'active':
-        //             return this.todos.filter(todo => !todo.completed);
-        //             break;
-
-        //         case 'completed': return this.todos.filter(todo => todo.completed);
-        //             break;
-
-        //         default: return this.todos;
-        //     }
-        // },
-        // showClearCompletedButton() {
-        //     return this.todos.filter( todo => todo.completed).length > 0;
-        // }
-    },
-
-    watch: {
-        filter(){
-            switch (this.filter) {
-                case 'all': return this.todosFiltered = this.todos;
-                    break;
-
-                case 'active':
-                    return this.todosFiltered = this.todos.filter(todo => !todo.completed);
-                    break;
-
-                case 'completed': return this.todosFiltered = this.todos.filter(todo => todo.completed);
-                    break;
-
-                default: return this.todosFiltered = this.todos;
-            }
+        noRemaining() {
+            return this.$store.getters.noRemaining;
+        },
+        todosFiltered() {
+            return this.$store.getters.todosFiltered;
+        },
+        showClearCompletedButton() {
+            return this.$store.getters.showClearCompletedButton;
         }
-    },
-
-    created() {
-        eventBus.$on('onRemove_', index => this.onRemove(index));
-        eventBus.$on('onFinished_', data => this.onFinished(data));
-        eventBus.$on('toggleCheckAll', () => this.toggleCheckAll());
-        eventBus.$on('onClearCompleted_', () => this.onClearCompleted());
-        eventBus.$on('onFilter_', (value) => this.filter = value); //通过事件传递value --> 改变this.filter的值 --> 引起watch事件发生
-    },
-
-    
+    },  
 
     methods: {
         onAdd() {
-            // this.todoCount++;
-            // if (this.newTodo.trim().length === 0) return;
+            this.todoCount++;
+            if (this.newTodo.trim().length === 0) return;
 
-            this.todos.push({
+            this.$store.dispatch('addTodo', {
                 id: this.todoCount,
-                title: this.newTodo,
-                completed: false
-            });
+                title: this.newTodo
+            })
             
             this.allCompleted = false;
             this.newTodo = "";
         },
-       
-        onRemove(index) {
-            // 接收子组件emit过来的数据，更新todos
-            this.todos.splice(index, 1);
-        },
-        toggleCheckAll() {
-            this.todos.forEach( (todo) => {
-                todo.completed = event.target.checked;
-            })
-        },
-        onClearCompleted() {
-            this.todos = this.todos.filter( todo => !todo.completed );
-        },
-        onFinished(data) {
-            console.log(this.todosFiltered)
-            console.log(data, 'data')
-            // 接收子组件emit过来的数据，更新todos
-            this.todos.splice(data.index, 1, data.todo)
-        }
     }
 };
 </script>

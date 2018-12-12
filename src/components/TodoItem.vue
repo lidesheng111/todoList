@@ -6,7 +6,7 @@
             <input v-else class="todo-item-edit" type="text" v-model="title" @blur="onFinished_" @keyup.enter="onFinished_" v-focus @keyup.esc="onCancel">
         </div>
         <div>
-            <button @click="onPluralize">Plural</button>
+            <button @click="onPluralize_">Plural</button>
             <span class="remove-item" @click="onRemove_(index_)">&times;</span>
         </div>
     </div>
@@ -52,9 +52,12 @@ export default {
         }
     },
 
-    created() {
-        eventBus.$on('onPluralize', this.handlePluralize);
-    },
+    // created() {
+    //     eventBus.$on('onPluralize', this.handlePluralize);
+    // },
+    // beforeDestroy() {
+    //     eventBus.$off('onPluralize', this.handlePluralize);
+    // },
 
     // 把父组件里的anyRemaining值（true/false）引入，以控制单个todo的completed。每次anyRemaining变换，TodoItem都会重新被渲染
     // watch属性直接侦听props里数据变动，从而触发后续动作；需保持变量名与方法名的对应；watch里的方法无需绑定在template里
@@ -63,13 +66,10 @@ export default {
             this.completed = this.checkAll_ ? true : this.todo_.completed
         }
     },
-    beforeDestroy() {
-        eventBus.$off('onPluralize', this.handlePluralize);
-    },
 
     methods: {
         onRemove_(index) {
-            eventBus.$emit('onRemove_', index)
+            this.$store.dispatch('onRemove', index)
         },
         onEdit_() {
             this.beforeEditingCache = this.title; // 编辑开始前，先把内容缓存
@@ -81,37 +81,44 @@ export default {
                 this.title = this.beforeEditingCache;
             } 
             this.editing = false;
-            // 将在子组件里编辑后的内容更新到父组件里
-            eventBus.$emit('onFinished_', {
-                index: this.index_,
-                todo: {
-                    id: this.id,
-                    title: this.title,
-                    completed: this.completed,
-                    editing: this.editing,
-                }
-            })
+
+            this.$store.dispatch('onFinishEdit', {
+                id: this.id,
+                title: this.title,
+                completed: this.completed,
+                editing: this.editing,
+            });
         },
         onCancel(todo) {
             this.title = this.beforeEditingCache; // 取消：调用缓存
             this.editing = false;
         },
-        onPluralize() {
-            eventBus.$emit('onPluralize');
-        },
-        handlePluralize() {
-            console.log(1)
+        onPluralize_() {
+            // eventBus.$emit('onPluralize');
+
+            // 改变本组件内部的title
             this.title = this.title + 's';
-            eventBus.$emit('onFinished_', {
-                index: this.index_,
-                todo: {
-                    id: this.id,
-                    title: this.title,
-                    completed: this.completed,
-                    editing: this.editing,
-                }
-            })
-        }
-    }
+            
+            // 改变store里的title
+            this.$store.dispatch('onFinishEdit', {
+                id: this.id,
+                title: this.title,
+                completed: this.completed,
+                editing: this.editing,
+            });
+        },
+        // handlePluralize() {
+        //     // 改变本组件内部的title
+        //     this.title = this.title + 's';
+            
+        //     // 改变store里的title
+        //     this.$store.dispatch('onFinishEdit', {
+        //         id: this.id,
+        //         title: this.title,
+        //         completed: this.completed,
+        //         editing: this.editing,
+        //     });
+        // }
+     }
 }
 </script>
